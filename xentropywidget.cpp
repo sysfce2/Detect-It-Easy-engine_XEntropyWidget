@@ -62,32 +62,12 @@ XEntropyWidget::XEntropyWidget(QWidget *pParent) : XShortcutsWidget(pParent), ui
     m_nOffset = 0;
     m_nSize = 0;
 
-    m_pGrid = new QwtPlotGrid;
-    m_pGrid->enableXMin(true);
+    ui->widgetEntropy->setCurveColor(Qt::red);
+    ui->widgetEntropy->setAxisScaleY(0, 8);  // Fix
+    ui->widgetEntropy->setTrackerVisible(true);
 
-    QPen penRed(Qt::red);
-    m_pCurve = new QwtPlotCurve;
-    m_pCurve->setPen(penRed);
-    m_pCurve->attach(ui->widgetEntropy);
-
-    QPen penBlue(Qt::blue);
-    m_pHistogram = new QwtPlotHistogram;
-    m_pHistogram->setPen(penBlue);
-
-    m_pHistogram->attach(ui->widgetBytes);
-
-    ui->widgetEntropy->setAxisScale(0, 0, 8);  // Fix
-                                               //    ui->widgetEntropy->setAxisScale(2,0,100);
-                                               //    ui->widgetEntropy->setAutoReplot();
-
-    ui->widgetBytes->setAxisScale(2, 0, 256, 32);
-    ui->widgetBytes->updateAxes();
-
-    m_pPicker = new QwtPlotPicker(2, 0, QwtPlotPicker::CrossRubberBand, QwtPicker::AlwaysOn, ui->widgetEntropy->canvas());
-    //        m_pPicker->setStateMachine(new QwtPickerDragPointMachine());
-    m_pPicker->setRubberBandPen(QColor(Qt::green));
-    m_pPicker->setRubberBand(QwtPicker::CrossRubberBand);
-    m_pPicker->setTrackerPen(QColor(Qt::red));
+    ui->widgetBytes->setHistogramColor(Qt::blue);
+    ui->widgetBytes->setAxisScaleX(0, 256, 32);
 
     ui->tabWidget->setCurrentIndex(0);
 
@@ -96,31 +76,8 @@ XEntropyWidget::XEntropyWidget(QWidget *pParent) : XShortcutsWidget(pParent), ui
 
 XEntropyWidget::~XEntropyWidget()
 {
-    clearZones();
-
-    m_pGrid->detach();
-    delete m_pGrid;
-
-    m_pCurve->detach();
-    delete m_pCurve;
-
-    m_pHistogram->detach();
-    delete m_pHistogram;
-
-    delete m_pPicker;
-
     XFormats::removeDevice(m_inData.pDevice, m_inData);
     delete ui;
-}
-
-void XEntropyWidget::clearZones()
-{
-    for (QwtPlotZoneItem *pItemZone : m_listZones) {
-        pItemZone->detach();
-        delete pItemZone;
-    }
-
-    m_listZones.clear();
 }
 
 void XEntropyWidget::setData(const XBinary::INDATA &inData, qint64 nOffset, qint64 nSize, bool bAuto)
@@ -208,20 +165,15 @@ void XEntropyWidget::reload(bool bGraph, bool bRegions)
 
                 qint32 nNumberOfEntropies = m_entropyData.listEntropies.count();
 
-                double *pOffsets = new double[nNumberOfEntropies];
-                double *pEntropies = new double[nNumberOfEntropies];
+                QVector<double> vecOffsets(nNumberOfEntropies);
+                QVector<double> vecEntropies(nNumberOfEntropies);
 
                 for (qint32 i = 0; i < nNumberOfEntropies; i++) {
-                    pOffsets[i] = m_entropyData.listEntropies.at(i).dOffset;
-                    pEntropies[i] = m_entropyData.listEntropies.at(i).dEntropy;
+                    vecOffsets[i] = m_entropyData.listEntropies.at(i).dOffset;
+                    vecEntropies[i] = m_entropyData.listEntropies.at(i).dEntropy;
                 }
 
-                m_pCurve->setSamples(pOffsets, pEntropies, nNumberOfEntropies);
-
-                delete[] pOffsets;
-                delete[] pEntropies;
-
-                ui->widgetEntropy->replot();
+                ui->widgetEntropy->setCurveData(vecOffsets, vecEntropies);
 
                 ui->tableWidgetBytes->clear();
 
@@ -265,22 +217,17 @@ void XEntropyWidget::reload(bool bGraph, bool bRegions)
 
                 // TODO Size 0,2 columns !!!
 
-                QVector<QwtIntervalSample> samples(256);
+                QVector<double> vecCounts(256);
 
-                for (quint32 i = 0; i < 256; i++) {
-                    QwtInterval qwtInterval(double(i), i + 1.0);
-                    qwtInterval.setBorderFlags(QwtInterval::ExcludeMaximum);
-
-                    samples[i] = QwtIntervalSample(m_entropyData.byteCounts.nCount[i], qwtInterval);
+                for (qint32 i = 0; i < 256; i++) {
+                    vecCounts[i] = m_entropyData.byteCounts.nCount[i];
                 }
 
-                m_pHistogram->setSamples(samples);
-                ui->widgetBytes->replot();
+                ui->widgetBytes->setHistogramData(vecCounts, 0, 1.0);
             }
 
             if (bRegions) {
-                clearZones();
-                ui->widgetEntropy->replot();
+                QList<XPlotWidget::ZONE> listZones;
 
                 qint32 nNumberOfMemoryRecords = m_entropyData.listMemoryRecords.count();
 
@@ -322,18 +269,19 @@ void XEntropyWidget::reload(bool bGraph, bool bRegions)
 
                     pModel->setItem(i, 4, pItemName);
 
-                    QwtPlotZoneItem *pItemZone = new QwtPlotZoneItem;
-                    pItemZone->setInterval(m_entropyData.listMemoryRecords.at(i).nOffset,
-                                           m_entropyData.listMemoryRecords.at(i).nOffset + m_entropyData.listMemoryRecords.at(i).nSize);
-                    pItemZone->setVisible(false);
+                    XPlotWidget::ZONE zone = {};
+                    zone.dBegin = m_entropyData.listMemoryRecords.at(i).nOffset;
+                    zone.dEnd = m_entropyData.listMemoryRecords.at(i).nOffset + m_entropyData.listMemoryRecords.at(i).nSize;
+                    zone.bVisible = false;
                     QColor color = Qt::darkBlue;
                     color.setAlpha(100);
-                    pItemZone->setPen(color);
+                    zone.colorPen = color;
                     color.setAlpha(20);
-                    pItemZone->setBrush(color);
-                    pItemZone->attach(ui->widgetEntropy);
-                    m_listZones.append(pItemZone);
+                    zone.colorBrush = color;
+                    listZones.append(zone);
                 }
+
+                ui->widgetEntropy->setZones(listZones);
 
                 XOptions::setModelTextAlignment(pModel, 0, Qt::AlignRight | Qt::AlignVCenter);
                 XOptions::setModelTextAlignment(pModel, 1, Qt::AlignRight | Qt::AlignVCenter);
@@ -398,7 +346,7 @@ void XEntropyWidget::registerShortcuts(bool bState)
 
 void XEntropyWidget::on_toolButtonSaveEntropyTable_clicked()
 {
-    QString sResultFileName = XBinary::getResultFileName(m_inData.pDevice, QString("%1.txt").arg(tr("Strings")));
+    QString sResultFileName = XBinary::getResultFileName(m_inData.pDevice, QString("%1.txt").arg(tr("Entropy")));
 
     QAbstractItemModel *pModel = nullptr;
 
@@ -419,7 +367,7 @@ void XEntropyWidget::on_toolButtonSaveEntropyDiagram_clicked()
     sFileName = QFileDialog::getSaveFileName(this, tr("Save diagram"), sFileName, sFilter);
 
     if (!sFileName.isEmpty()) {
-        QwtPlot *pWidget = nullptr;
+        XPlotWidget *pWidget = nullptr;
 
         if (ui->tabWidget->currentIndex() == 0) {
             pWidget = ui->widgetEntropy;
@@ -427,10 +375,7 @@ void XEntropyWidget::on_toolButtonSaveEntropyDiagram_clicked()
             pWidget = ui->widgetBytes;
         }
 
-        QwtPlotRenderer renderer;
-        renderer.setDiscardFlag(QwtPlotRenderer::DiscardBackground, false);
-        //        renderer.setLayoutFlag(QwtPlotRenderer::KeepFrames,true);
-        renderer.renderDocument(pWidget, sFileName, QSizeF(300, 200), 85);
+        pWidget->saveToFile(sFileName);
     }
 }
 
@@ -454,13 +399,7 @@ void XEntropyWidget::adjust()
 
 void XEntropyWidget::on_checkBoxGridRegions_toggled(bool bChecked)
 {
-    if (bChecked) {
-        m_pGrid->attach(ui->widgetEntropy);
-    } else {
-        m_pGrid->detach();
-    }
-
-    ui->widgetEntropy->replot();
+    ui->widgetEntropy->setGridVisible(bChecked);
 }
 
 void XEntropyWidget::on_tableViewSelection(const QItemSelection &itemSelected, const QItemSelection &itemDeselected)
@@ -468,11 +407,7 @@ void XEntropyWidget::on_tableViewSelection(const QItemSelection &itemSelected, c
     Q_UNUSED(itemSelected)
     Q_UNUSED(itemDeselected)
 
-    qint32 nNumberOfZones = m_listZones.count();
-
-    for (qint32 i = 0; i < nNumberOfZones; i++) {
-        m_listZones.at(i)->setVisible(false);
-    }
+    ui->widgetEntropy->clearZonesVisible();
 
     QItemSelectionModel *pSelectionModel = ui->tableViewRegions->selectionModel();
 
@@ -483,12 +418,12 @@ void XEntropyWidget::on_tableViewSelection(const QItemSelection &itemSelected, c
 
         for (qint32 i = 0; i < nNumberOfRecords; i++) {
             if (listIndexes.at(i).column() == 0) {
-                m_listZones.at(listIndexes.at(i).row())->setVisible(true);
+                // The view selects proxy indexes; zones are in source-model order
+                QModelIndex indexSource = ui->tableViewRegions->getProxyModel()->mapToSource(listIndexes.at(i));
+                ui->widgetEntropy->setZoneVisible(indexSource.row(), true);
             }
         }
     }
-
-    ui->widgetEntropy->replot();
 }
 
 void XEntropyWidget::on_tableViewRegions_customContextMenuRequested(const QPoint &pos)

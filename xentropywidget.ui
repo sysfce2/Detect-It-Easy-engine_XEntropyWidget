@@ -348,7 +348,7 @@
             </layout>
            </item>
            <item>
-            <widget class="QwtPlot" name="widgetEntropy" native="true">
+            <widget class="XPlotWidget" name="widgetEntropy" native="true">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -423,7 +423,7 @@
            <number>20</number>
           </attribute>
          </widget>
-         <widget class="QwtPlot" name="widgetBytes" native="true"/>
+         <widget class="XPlotWidget" name="widgetBytes" native="true"/>
         </widget>
        </item>
       </layout>
@@ -444,9 +444,9 @@
    <header>xlineedithex.h</header>
   </customwidget>
   <customwidget>
-   <class>QwtPlot</class>
+   <class>XPlotWidget</class>
    <extends>QWidget</extends>
-   <header>qwt_plot.h</header>
+   <header>xplotwidget.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

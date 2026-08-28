@@ -5,10 +5,12 @@ DEPENDPATH += $$PWD
 
 HEADERS += \
     $$PWD/xentropywidget.h \
+    $$PWD/xplotwidget.h \
     $$PWD/dialogentropy.h
 
 SOURCES += \
     $$PWD/xentropywidget.cpp \
+    $$PWD/xplotwidget.cpp \
     $$PWD/dialogentropy.cpp
 
 FORMS += \
@@ -18,11 +20,6 @@ FORMS += \
 !contains(XCONFIG, entropyprocess) {
     XCONFIG += entropyprocess
     include($$PWD/entropyprocess.pri)
-}
-
-!contains(XCONFIG, xqwt) {
-    XCONFIG += xqwt
-    include($$PWD/../XQwt/xqwt.pri)
 }
 
 !contains(XCONFIG, xlineedithex) {

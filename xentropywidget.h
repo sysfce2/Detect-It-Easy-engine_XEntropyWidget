@@ -27,21 +27,7 @@
 
 #include "entropyprocess.h"
 #include "xdialogprocess.h"
-#include "qwt_legend.h"
-#include "qwt_math.h"
-#include "qwt_plot.h"
-#include "qwt_plot_canvas.h"
-#include "qwt_plot_curve.h"
-#include "qwt_plot_grid.h"
-#include "qwt_plot_histogram.h"
-#include "qwt_plot_magnifier.h"
-#include "qwt_plot_marker.h"
-#include "qwt_plot_panner.h"
-#include "qwt_plot_picker.h"
-#include "qwt_plot_renderer.h"
-#include "qwt_plot_zoneitem.h"
-#include "qwt_series_data.h"
-#include "qwt_text.h"
+#include "xplotwidget.h"
 #include "xshortcutswidget.h"
 
 namespace Ui {
@@ -79,19 +65,12 @@ protected:
     virtual void registerShortcuts(bool bState);
 
 private:
-    void clearZones();
-
     Ui::XEntropyWidget *ui;
     XBinary::INDATA m_inData;
     qint64 m_nOffset;
     qint64 m_nSize;
     EntropyProcess::DATA m_entropyData;
-    QwtPlotCurve *m_pCurve;
-    QwtPlotHistogram *m_pHistogram;
-    QwtPlotGrid *m_pGrid;
-    QList<QwtPlotZoneItem *> m_listZones;
     QString m_sSaveDirectory;
-    QwtPlotPicker *m_pPicker;
 };
 
 #endif  // XENTROPYWIDGET_H
